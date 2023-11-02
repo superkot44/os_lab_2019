@@ -1,18 +1,22 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <pthread.h>
+#include "utils.h" // Включаем заголовочный файл с функцией GenerateArray
 
+// Структура для передачи аргументов в поток
 struct SumArgs {
   int *array;
   int begin;
   int end;
 };
 
+// Функция для вычисления суммы внутри заданного диапазона
 int Sum(const struct SumArgs *args) {
   int sum = 0;
-  // TODO: your code here 
+  for (int i = args->begin; i < args->end; i++) {
+    sum += args->array[i];
+  }
   return sum;
 }
 
@@ -22,29 +26,32 @@ void *ThreadSum(void *args) {
 }
 
 int main(int argc, char **argv) {
-  /*
-   *  TODO:
-   *  threads_num by command line arguments
-   *  array_size by command line arguments
-   *	seed by command line arguments
-   */
+  if (argc != 7) {
+    printf("Usage: %s --threads_num <num> --seed <num> --array_size <num>\n", argv[0]);
+    return 1;
+  }
 
-  uint32_t threads_num = 0;
-  uint32_t array_size = 0;
-  uint32_t seed = 0;
+  // Извлекаем аргументы из командной строки
+  uint32_t threads_num = atoi(argv[2]);
+  uint32_t seed = atoi(argv[4]);
+  uint32_t array_size = atoi(argv[6]);
+  
   pthread_t threads[threads_num];
-
-  /*
-   * TODO:
-   * your code here
-   * Generate array here
-   */
-
-  int *array = malloc(sizeof(int) * array_size);
-
   struct SumArgs args[threads_num];
+
+  // Генерируем массив с заданным seed и размером
+  int *array = malloc(sizeof(int) * array_size);
+  GenerateArray(array, array_size, seed);
+
+  int step = array_size / threads_num;
+  int start = 0;
   for (uint32_t i = 0; i < threads_num; i++) {
-    if (pthread_create(&threads[i], NULL, ThreadSum, (void *)&args)) {
+    args[i].array = array;
+    args[i].begin = start;
+    args[i].end = (i == threads_num - 1) ? array_size : start + step;
+    start += step;
+
+    if (pthread_create(&threads[i], NULL, ThreadSum, (void *)&args[i])) {
       printf("Error: pthread_create failed!\n");
       return 1;
     }
