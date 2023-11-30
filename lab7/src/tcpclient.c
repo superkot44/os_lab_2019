@@ -7,26 +7,24 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define BUFSIZE 100
-#define SADDR struct sockaddr
-#define SIZE sizeof(struct sockaddr_in)
-
 int main(int argc, char *argv[]) {
   int fd;
   int nread;
-  char buf[BUFSIZE];
-  struct sockaddr_in servaddr;
-  if (argc < 3) {
-    printf("Too few arguments \n");
+  if (argc < 4) {
+    printf("Usage: %s <server_ip> <server_port> <message_size>\n", argv[0]);
     exit(1);
   }
 
+  int message_size = atoi(argv[3]);
+  char buf[message_size];
+
+  struct sockaddr_in servaddr;
   if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
     perror("socket creating");
     exit(1);
   }
 
-  memset(&servaddr, 0, SIZE);
+  memset(&servaddr, 0, sizeof(servaddr));
   servaddr.sin_family = AF_INET;
 
   if (inet_pton(AF_INET, argv[1], &servaddr.sin_addr) <= 0) {
@@ -36,13 +34,13 @@ int main(int argc, char *argv[]) {
 
   servaddr.sin_port = htons(atoi(argv[2]));
 
-  if (connect(fd, (SADDR *)&servaddr, SIZE) < 0) {
+  if (connect(fd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
     perror("connect");
     exit(1);
   }
 
   write(1, "Input message to send\n", 22);
-  while ((nread = read(0, buf, BUFSIZE)) > 0) {
+  while ((nread = read(0, buf, message_size)) > 0) {
     if (write(fd, buf, nread) < 0) {
       perror("write");
       exit(1);
